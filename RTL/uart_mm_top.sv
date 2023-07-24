@@ -1,3 +1,20 @@
+/*REGISTER MAP*/
+/*
+    0x0 - CONTROL - RW
+        [0] - fifo_rx_empty
+        [1] - fifo_rx_full
+        [2] - fifo_tx_empty
+        [3] - fifo_tx_full
+        [8] - enable parity bit
+        [9] - parity bit type, 0 - even, 1 - odd
+        [11:10] - count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
+        [31:12] - reserved
+    0x1 - BAUD_GEN: {4'h0, baud_freq, baud_limit} - WR
+    0x2 - FILL TX - RO
+    0x3 - FILL RX - RO
+    0x4 - TX FIFO - WO
+    0x5 - RX FIFO - RO
+*/
 module uart_mm_top #(
     parameter fifo_depth = 10
 )(
@@ -29,7 +46,7 @@ module uart_mm_top #(
 
     logic fifo_rx_wr, fifo_rx_rd;
     logic [fifo_depth:0] fifo_rx_fill;
-    logic [7:0] fifo_rx_din, fifo_rx_dout;
+    logic [8:0] fifo_rx_din, fifo_rx_dout;
     logic fifo_rx_full, fifo_rx_empty;
 
 //control register
@@ -50,7 +67,7 @@ module uart_mm_top #(
     bit             rx_valid_o;
 
     bit             rx_read;
-    bit     [7:0]   rx_readdata;
+    bit     [8:0]   rx_readdata;
     bit             rx_readdatavalid;
 
 /***********************************************************************************************************************/
@@ -171,7 +188,7 @@ uart_rx_tx uart_rx_tx_inst(
 /***********************************************************************************************************************/
 /***********************************************************************************************************************/
 //connect fifo_tx
-assign fifo_tx_rd = ~fifo_tx_empty & fifo_tx_rd;
+assign fifo_tx_rd = ~fifo_tx_empty & tx_ready_o;
 
 always_ff @ (posedge clk or negedge reset_n)
     if(!reset_n) tx_valid_i <= 1'b0;
@@ -183,6 +200,7 @@ assign tx_data_i = fifo_tx_dout;
 assign fifo_rx_wr = rx_valid_o;
 assign fifo_rx_din = {rx_pbit_error, rx_data_o};
 
+assign fifo_rx_rd = rx_read;
 assign rx_readdata = fifo_rx_dout;
 
 always_ff @ (posedge clk or negedge reset_n)
