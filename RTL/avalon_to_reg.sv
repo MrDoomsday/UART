@@ -45,8 +45,8 @@ module avalon_to_reg (
     input   bit                 fifo_rx_full,
     input   bit     [31:0]      fifo_rx_fill,
     
-    input   bit     [7:0]       tx_byte,
-    input   bit                 tx_valid,
+    output   bit     [7:0]       tx_byte,
+    output   bit                 tx_valid,
 
     output  bit                 rx_read,
     input   bit     [8:0]       rx_readdata,
@@ -71,6 +71,7 @@ bit write_transaction, read_transaction;//выставляется в момен
 /***********************************************************************************************************************/
 /***********************************************************************************************************************/
 //write in register
+    //uart control bits 
     always_ff @ (posedge clk or negedge reset_n)
         if(!reset_n) begin
             cr_pbit <= 1'b0;
@@ -80,7 +81,8 @@ bit write_transaction, read_transaction;//выставляется в момен
         else if((avmms_address_i == 3'h0) && avmms_write_i && !avmms_waitrequest_o) begin
             if(avmms_buteenable_i[1]) {cr_sbit, cr_ptype, cr_pbit} <= avmms_writedata_i[11:8];
         end
-
+    
+    //baud freq and baud limit
     always_ff @ (posedge clk) begin
         if((avmms_address_i == 3'h1) && avmms_write_i && !avmms_waitrequest_o) begin
             if(avmms_buteenable_i[3])   cr_baud_freq[11:8]  <= avmms_writedata_i[27:24];
@@ -89,6 +91,21 @@ bit write_transaction, read_transaction;//выставляется в момен
             if(avmms_buteenable_i[0])   cr_baud_limit[7:0]  <= avmms_writedata_i[7:0];
         end
     end
+
+    //new data for TX
+    always_ff @ (posedge clk or negedge reset_n)
+        if(!reset_n) begin
+            tx_byte     <= 8'h0;
+            tx_valid    <= 1'b0;
+        end
+        else if((avmms_address_i == 3'h4) && avmms_write_i && !avmms_waitrequest_o && avmms_buteenable_i[0]) begin
+            tx_byte     <= avmms_writedata_i[7:0];
+            tx_valid    <= 1'b1;
+        end
+        else begin
+            tx_byte     <= 8'h0;
+            tx_valid    <= 1'b0;
+        end
 
 //control transaction
     always_ff @ (posedge clk or negedge reset_n)
@@ -100,7 +117,7 @@ bit write_transaction, read_transaction;//выставляется в момен
             if(!write_transaction) write_transaction <= avmms_write_i;
             else if(avmms_write_i & !avmms_waitrequest_o) write_transaction <= 1'b0;
 
-            if(!read_transaction) write_transaction <= avmms_read_i;
+            if(!read_transaction) read_transaction <= avmms_read_i;
             else if(avmms_read_i & !avmms_waitrequest_o) read_transaction <= 1'b0;
         end
 
@@ -111,11 +128,18 @@ bit write_transaction, read_transaction;//выставляется в момен
             next_waitrequest <= 1'b1;
         end
         else begin
-            if(avmms_read_i && (avmms_address_i == 3'h5) && !read_transaction) next_waitrequest <= 1'b0;
-            else next_waitrequest <= 1'b1;
-
-            if(avmms_write_i && !write_transaction || avmms_read_i && !read_transaction) avmms_waitrequest_o <= 1'b0;
-            else avmms_waitrequest_o <= next_waitrequest;
+            if(avmms_read_i && (avmms_address_i == 3'h5) && !read_transaction) begin
+                next_waitrequest <= 1'b0;
+                avmms_waitrequest_o <= next_waitrequest;
+            end
+            else if(avmms_write_i && !write_transaction || avmms_read_i && !read_transaction) begin
+                avmms_waitrequest_o <= 1'b0;
+                next_waitrequest <= 1'b1;
+            end
+            else begin 
+                next_waitrequest <= 1'b1;
+                avmms_waitrequest_o <= next_waitrequest;
+            end
         end
 
 //read from register
