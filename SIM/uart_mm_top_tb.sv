@@ -14,7 +14,7 @@ module uart_mm_top_tb();
     reg 				avmms_write_i;
     reg 	[2:0] 		avmms_address_i;
     reg 	[31:0]		avmms_writedata_i;
-    reg     [3:0]       avmms_buteenable_i;
+    reg     [3:0]       avmms_byteenable_i;
     reg                 avmms_read_i;
     wire 				avmms_waitrequest_o;
     wire    [31:0]      avmms_readdata_o;
@@ -30,7 +30,7 @@ module uart_mm_top_tb();
         .avmms_write_i      (avmms_write_i),
         .avmms_address_i    (avmms_address_i),
         .avmms_writedata_i  (avmms_writedata_i),
-        .avmms_buteenable_i (avmms_buteenable_i),
+        .avmms_byteenable_i (avmms_byteenable_i),
         .avmms_read_i       (avmms_read_i),
         .avmms_waitrequest_o(avmms_waitrequest_o),
         .avmms_readdata_o   (avmms_readdata_o),
@@ -54,7 +54,7 @@ module uart_mm_top_tb();
         avmms_address_i = address;
         avmms_writedata_i = data;
         avmms_write_i = 1'b1;
-        avmms_buteenable_i = 4'b1111;
+        avmms_byteenable_i = 4'b1111;
         @(posedge clk);
         #2;
         while(avmms_waitrequest_o) begin
@@ -64,7 +64,7 @@ module uart_mm_top_tb();
         @(posedge clk);
         avmms_writedata_i = 32'h0;
         avmms_write_i = 1'b0;
-        avmms_buteenable_i = 4'b0000;
+        avmms_byteenable_i = 4'b0000;
     endtask
 
     /*REGISTER MAP*/
@@ -96,7 +96,7 @@ module uart_mm_top_tb();
         avmms_write_i = 1'b0;
         avmms_address_i = 3'h0;
         avmms_writedata_i = 32'h0;
-        avmms_buteenable_i = 4'h0;
+        avmms_byteenable_i = 4'h0;
         avmms_read_i = 1'b0;
         repeat(5) @ (posedge clk);
         reset_n = 1'b1;

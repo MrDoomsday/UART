@@ -25,7 +25,7 @@ module avalon_to_reg (
 	input 	bit 				avmms_write_i,
 	input 	bit 	[2:0] 		avmms_address_i,
 	input 	bit 	[31:0]		avmms_writedata_i,
-    input   bit     [3:0]       avmms_buteenable_i,
+    input   bit     [3:0]       avmms_byteenable_i,
     input   bit                 avmms_read_i,
 	output 	bit 				avmms_waitrequest_o,
     output  bit     [31:0]      avmms_readdata_o,
@@ -79,16 +79,16 @@ bit write_transaction, read_transaction;//выставляется в момен
             cr_sbit <= 2'b00;
         end
         else if((avmms_address_i == 3'h0) && avmms_write_i && !avmms_waitrequest_o) begin
-            if(avmms_buteenable_i[1]) {cr_sbit, cr_ptype, cr_pbit} <= avmms_writedata_i[11:8];
+            if(avmms_byteenable_i[1]) {cr_sbit, cr_ptype, cr_pbit} <= avmms_writedata_i[11:8];
         end
     
     //baud freq and baud limit
     always_ff @ (posedge clk) begin
         if((avmms_address_i == 3'h1) && avmms_write_i && !avmms_waitrequest_o) begin
-            if(avmms_buteenable_i[3])   cr_baud_freq[11:8]  <= avmms_writedata_i[27:24];
-            if(avmms_buteenable_i[2])   cr_baud_freq[7:0]   <= avmms_writedata_i[23:16];
-            if(avmms_buteenable_i[1])   cr_baud_limit[15:8] <= avmms_writedata_i[15:8];
-            if(avmms_buteenable_i[0])   cr_baud_limit[7:0]  <= avmms_writedata_i[7:0];
+            if(avmms_byteenable_i[3])   cr_baud_freq[11:8]  <= avmms_writedata_i[27:24];
+            if(avmms_byteenable_i[2])   cr_baud_freq[7:0]   <= avmms_writedata_i[23:16];
+            if(avmms_byteenable_i[1])   cr_baud_limit[15:8] <= avmms_writedata_i[15:8];
+            if(avmms_byteenable_i[0])   cr_baud_limit[7:0]  <= avmms_writedata_i[7:0];
         end
     end
 
@@ -98,7 +98,7 @@ bit write_transaction, read_transaction;//выставляется в момен
             tx_byte     <= 8'h0;
             tx_valid    <= 1'b0;
         end
-        else if((avmms_address_i == 3'h4) && avmms_write_i && !avmms_waitrequest_o && avmms_buteenable_i[0]) begin
+        else if((avmms_address_i == 3'h4) && avmms_write_i && !avmms_waitrequest_o && avmms_byteenable_i[0]) begin
             tx_byte     <= avmms_writedata_i[7:0];
             tx_valid    <= 1'b1;
         end
