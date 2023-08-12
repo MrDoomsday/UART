@@ -53,7 +53,7 @@ module uart_mm_top #(
     bit             cr_pbit; // enable parity bit
     bit     [1:0]   cr_sbit; // count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
 	bit				cr_ptype;// type parity bit, 0 - even, 1 - odd
-    bit     [11:0]  cr_baud_freq;
+    bit     [15:0]  cr_baud_freq;
     bit     [15:0]	cr_baud_limit;
 
 //tx data

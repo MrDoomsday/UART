@@ -16,7 +16,7 @@ module baud_gen (
 	input 			clock,		// global clock input 
 	input 			reset,		// global reset input 
 	output	reg		ce_16,		// baud rate multiplyed by 16 
-	input	[11:0]	baud_freq,	// baud rate setting registers - see header description 
+	input	[15:0]	baud_freq,	// baud rate setting registers - see header description 
 	input	[15:0]	baud_limit
 );
 

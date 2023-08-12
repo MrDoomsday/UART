@@ -20,7 +20,7 @@ module uart_rx_tx (
     input   bit             cr_pbit, // enable parity bit
     input   bit     [1:0]   cr_sbit, // count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
 	input 	bit				cr_ptype,// type parity bit, 0 - even, 1 - odd
-    input   bit     [11:0]  cr_baud_freq,
+    input   bit     [15:0]  cr_baud_freq,
     input   bit     [15:0]	cr_baud_limit
 
 );
