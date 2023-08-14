@@ -9,7 +9,7 @@
         [9] - parity bit type, 0 - even, 1 - odd
         [11:10] - count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
         [31:12] - reserved
-    0x1 - BAUD_GEN: {4'h0, baud_freq, baud_limit} - WR
+    0x1 - BAUD_GEN: baud_limit - WR
     0x2 - FILL TX - RO
     0x3 - FILL RX - RO
     0x4 - TX FIFO - WO
@@ -53,8 +53,8 @@ module uart_mm_top #(
     bit             cr_pbit; // enable parity bit
     bit     [1:0]   cr_sbit; // count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
 	bit				cr_ptype;// type parity bit, 0 - even, 1 - odd
-    bit     [15:0]  cr_baud_freq;
-    bit     [15:0]	cr_baud_limit;
+    bit     [31:0]	cr_baud_limit;
+    bit             cr_baud_update;
 
 //tx data
     bit     [7:0]   tx_data_i;
@@ -92,8 +92,8 @@ avalon_to_reg avalon_to_reg_inst (
     .cr_pbit        (cr_pbit), // enable parity bit
     .cr_sbit        (cr_sbit), // count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
 	.cr_ptype       (cr_ptype),// type parity bit, 0 - even, 1 - odd
-    .cr_baud_freq   (cr_baud_freq),
     .cr_baud_limit  (cr_baud_limit),
+    .cr_baud_update (cr_baud_update),
 
     .fifo_tx_empty  (fifo_tx_empty),
     .fifo_tx_full   (fifo_tx_full),
@@ -177,8 +177,8 @@ uart_rx_tx uart_rx_tx_inst(
     .cr_pbit        (cr_pbit), // enable parity bit
     .cr_sbit        (cr_sbit), // count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
 	.cr_ptype       (cr_ptype),// type parity bit, 0 - even, 1 - odd
-    .cr_baud_freq   (cr_baud_freq),
-    .cr_baud_limit  (cr_baud_limit)
+    .cr_baud_limit  (cr_baud_limit),
+    .cr_baud_update (cr_baud_update)
 );
 
 
