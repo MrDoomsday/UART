@@ -1,11 +1,20 @@
+`timescale 1ns/1ps
+
 module uart_mm_top_tb();
 
 
     localparam fifo_depth = 10;
     
 
-    reg     [11:0]  cr_baud_freq = 12'd576; // baud = 115200, freq = 50 MHz
+/*
+    * baud = 115200, freq = 50 MHz
+    reg     [15:0]  cr_baud_freq = 15'd576; 
     reg     [15:0]	cr_baud_limit = 16'd15049;
+*/
+
+// baud = 921600, freq = 50 MHz
+    reg     [15:0]  cr_baud_freq = 16'd4608; // baud = 115200, freq = 50 MHz
+    reg     [15:0]	cr_baud_limit = 16'd11017;
 
 
     reg clk;
@@ -102,7 +111,7 @@ module uart_mm_top_tb();
         reset_n = 1'b1;
         repeat(5) @ (posedge clk);
         
-        mm_write(3'h1, {4'h0, cr_baud_freq, cr_baud_limit});
+        mm_write(3'h1, {cr_baud_freq, cr_baud_limit});
 
         for (int i = 0; i < 16; i++) begin
             mm_write(3'h0, {16'h0, i[7:0], 8'h0});            

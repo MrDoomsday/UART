@@ -22,8 +22,16 @@ module uart_tb();
     reg             cr_pbit; // enable control bit
     reg     [1:0]   cr_sbit; // count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
     reg				cr_ptype;// type parity bit, 0 - even, 1 - odd
-    reg     [11:0]  cr_baud_freq = 12'd576; // baud = 115200, freq = 50 MHz
+
+/*
+    * baud = 115200, freq = 50 MHz
+    reg     [15:0]  cr_baud_freq = 16'd576; 
     reg     [15:0]	cr_baud_limit = 16'd15049;
+*/
+
+// baud = 921600, freq = 50 MHz
+reg     [15:0]  cr_baud_freq = 16'd4608; // baud = 115200, freq = 50 MHz
+reg     [15:0]	cr_baud_limit = 16'd11017;
 
 
 
