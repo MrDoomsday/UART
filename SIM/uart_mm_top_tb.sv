@@ -1,11 +1,14 @@
+`timescale 1ns/1ns
+import defs::*;
+
 module uart_mm_top_tb();
 
 
     localparam fifo_depth = 10;
-    
+    localparam bit [31:0] system_frequency = 32'd100_000_000; // in Hz
+    reg     [31:0]	baudrate = 9600; // in Baud
 
-    reg     [11:0]  cr_baud_freq = 12'd576; // baud = 115200, freq = 50 MHz
-    reg     [15:0]	cr_baud_limit = 16'd15049;
+
 
 
     reg clk;
@@ -14,7 +17,7 @@ module uart_mm_top_tb();
     reg 				avmms_write_i;
     reg 	[2:0] 		avmms_address_i;
     reg 	[31:0]		avmms_writedata_i;
-    reg     [3:0]       avmms_buteenable_i;
+    reg     [3:0]       avmms_byteenable_i;
     reg                 avmms_read_i;
     wire 				avmms_waitrequest_o;
     wire    [31:0]      avmms_readdata_o;
@@ -30,7 +33,7 @@ module uart_mm_top_tb();
         .avmms_write_i      (avmms_write_i),
         .avmms_address_i    (avmms_address_i),
         .avmms_writedata_i  (avmms_writedata_i),
-        .avmms_buteenable_i (avmms_buteenable_i),
+        .avmms_byteenable_i (avmms_byteenable_i),
         .avmms_read_i       (avmms_read_i),
         .avmms_waitrequest_o(avmms_waitrequest_o),
         .avmms_readdata_o   (avmms_readdata_o),
@@ -43,10 +46,11 @@ module uart_mm_top_tb();
 
     always begin
         clk = 1'b0;
-        #10;
+        #5;
         clk = 1'b1;
-        #10;
+        #5;
     end
+    
 
 
 
@@ -54,7 +58,7 @@ module uart_mm_top_tb();
         avmms_address_i = address;
         avmms_writedata_i = data;
         avmms_write_i = 1'b1;
-        avmms_buteenable_i = 4'b1111;
+        avmms_byteenable_i = 4'b1111;
         @(posedge clk);
         #2;
         while(avmms_waitrequest_o) begin
@@ -64,7 +68,7 @@ module uart_mm_top_tb();
         @(posedge clk);
         avmms_writedata_i = 32'h0;
         avmms_write_i = 1'b0;
-        avmms_buteenable_i = 4'b0000;
+        avmms_byteenable_i = 4'b0000;
     endtask
 
     /*REGISTER MAP*/
@@ -78,7 +82,7 @@ module uart_mm_top_tb();
             [9] - parity bit type, 0 - even, 1 - odd
             [11:10] - count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
             [31:12] - reserved
-        0x1 - BAUD_GEN: {4'h0, baud_freq, baud_limit} - WR
+        0x1 - BAUD_GEN: baud_limit - WR
         0x2 - FILL TX - RO
         0x3 - FILL RX - RO
         0x4 - TX FIFO - WO
@@ -96,13 +100,13 @@ module uart_mm_top_tb();
         avmms_write_i = 1'b0;
         avmms_address_i = 3'h0;
         avmms_writedata_i = 32'h0;
-        avmms_buteenable_i = 4'h0;
+        avmms_byteenable_i = 4'h0;
         avmms_read_i = 1'b0;
         repeat(5) @ (posedge clk);
         reset_n = 1'b1;
         repeat(5) @ (posedge clk);
         
-        mm_write(3'h1, {4'h0, cr_baud_freq, cr_baud_limit});
+        mm_write(3'h1, calc_baud_limit(system_frequency, baudrate));
 
         for (int i = 0; i < 16; i++) begin
             mm_write(3'h0, {16'h0, i[7:0], 8'h0});            

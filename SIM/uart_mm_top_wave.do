@@ -5,7 +5,6 @@ add wave -noupdate /uart_mm_top_tb/reset_n
 add wave -noupdate -expand -group Avalon-Slave /uart_mm_top_tb/avmms_write_i
 add wave -noupdate -expand -group Avalon-Slave /uart_mm_top_tb/avmms_address_i
 add wave -noupdate -expand -group Avalon-Slave /uart_mm_top_tb/avmms_writedata_i
-add wave -noupdate -expand -group Avalon-Slave /uart_mm_top_tb/avmms_buteenable_i
 add wave -noupdate -expand -group Avalon-Slave /uart_mm_top_tb/avmms_read_i
 add wave -noupdate -expand -group Avalon-Slave /uart_mm_top_tb/avmms_waitrequest_o
 add wave -noupdate -expand -group Avalon-Slave /uart_mm_top_tb/avmms_readdata_o
@@ -15,7 +14,6 @@ add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/reset_n
 add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/avmms_write_i
 add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/avmms_address_i
 add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/avmms_writedata_i
-add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/avmms_buteenable_i
 add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/avmms_read_i
 add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/avmms_waitrequest_o
 add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/avmms_readdata_o
@@ -38,7 +36,6 @@ add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/fifo_rx_empty
 add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/cr_pbit
 add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/cr_sbit
 add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/cr_ptype
-add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/cr_baud_freq
 add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/cr_baud_limit
 add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/tx_data_i
 add wave -noupdate -expand -group uart_mm_top /uart_mm_top_tb/DUT/tx_valid_i
@@ -67,14 +64,12 @@ add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_re
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/avmms_write_i
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/avmms_address_i
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/avmms_writedata_i
-add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/avmms_buteenable_i
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/avmms_read_i
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/avmms_waitrequest_o
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/avmms_readdata_o
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/cr_pbit
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/cr_sbit
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/cr_ptype
-add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/cr_baud_freq
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/cr_baud_limit
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/fifo_tx_empty
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/fifo_tx_full
@@ -91,8 +86,8 @@ add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_re
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/write_transaction
 add wave -noupdate -expand -group avalon_to_reg /uart_mm_top_tb/DUT/avalon_to_reg_inst/read_transaction
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {22214055 ns} 1} {{Cursor 2} {22214233 ns} 0}
-quietly wave cursor active 2
+WaveRestoreCursors {{Cursor 3} {72583545 ns} 0}
+quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -107,4 +102,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ns} {4672 ns}
+WaveRestoreZoom {72232230 ns} {73058893 ns}

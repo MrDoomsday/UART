@@ -1,4 +1,12 @@
+`timescale 1ns/1ns
+import defs::*;
+
 module uart_tb();
+
+    localparam bit [31:0] system_frequency = 32'd100_000_000; // in Hz
+    reg     [31:0]	baudrate = 9600; // in Baud
+
+
 
     reg clk;
     reg reset_n;
@@ -22,8 +30,8 @@ module uart_tb();
     reg             cr_pbit; // enable control bit
     reg     [1:0]   cr_sbit; // count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
     reg				cr_ptype;// type parity bit, 0 - even, 1 - odd
-    reg     [11:0]  cr_baud_freq = 12'd576; // baud = 115200, freq = 50 MHz
-    reg     [15:0]	cr_baud_limit = 16'd15049;
+
+    wire     [31:0]	cr_baud_limit = calc_baud_limit(system_frequency, baudrate);
 
 
 
@@ -50,7 +58,6 @@ module uart_tb();
         .cr_pbit        (cr_pbit), // enable control bit
         .cr_sbit        (cr_sbit), // count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
         .cr_ptype       (cr_ptype),// type parity bit, 0 - even, 1 - odd
-        .cr_baud_freq   (cr_baud_freq),
         .cr_baud_limit  (cr_baud_limit)
 
     );
@@ -60,9 +67,9 @@ module uart_tb();
 
     always begin
         clk = 1'b0;
-        #10;
+        #5;
         clk = 1'b1;
-        #10;
+        #5;
     end
 
     bit [7:0] random_data;
