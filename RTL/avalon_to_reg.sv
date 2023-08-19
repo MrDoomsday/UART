@@ -1,4 +1,3 @@
-
 /*REGISTER MAP*/
 /*
     0x0 - CONTROL - RW
@@ -9,14 +8,15 @@
         [8] - enable parity bit
         [9] - parity bit type, 0 - even, 1 - odd
         [11:10] - count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
-        [31:12] - reserved
+        [12] - tx_enable
+        [13] - rx_enable
+        [31:14] - reserved
     0x1 - BAUD_GEN: baud_limit - WR
     0x2 - FILL TX - RO
     0x3 - FILL RX - RO
     0x4 - TX FIFO - WO
     0x5 - RX FIFO - RO
 */
-
 module avalon_to_reg (
     input bit clk,
     input bit reset_n,
@@ -36,6 +36,9 @@ module avalon_to_reg (
 	output 	 bit				cr_ptype,// type parity bit, 0 - even, 1 - odd
     output   bit     [31:0]	    cr_baud_limit,
     output   bit                cr_baud_update,
+    output   bit                cr_tx_en,
+    output   bit                cr_rx_en,
+    
 
 
     input   bit                 fifo_tx_empty,
@@ -78,9 +81,17 @@ bit write_transaction, read_transaction;//выставляется в момен
             cr_pbit <= 1'b0;
             cr_ptype <= 1'b0;
             cr_sbit <= 2'b00;
+            cr_tx_en <= 1'b1;
+            cr_rx_en <= 1'b1;
         end
         else if((avmms_address_i == 3'h0) && avmms_write_i && !avmms_waitrequest_o) begin
-            if(avmms_byteenable_i[1]) {cr_sbit, cr_ptype, cr_pbit} <= avmms_writedata_i[11:8];
+            if(avmms_byteenable_i[1]) begin
+                cr_rx_en    <= avmms_writedata_i[13];
+                cr_tx_en    <= avmms_writedata_i[12];
+                cr_sbit     <= avmms_writedata_i[11:10];
+                cr_ptype    <= avmms_writedata_i[9];
+                cr_pbit     <= avmms_writedata_i[8];
+            end
         end
     
     //baud freq and baud limit
@@ -154,7 +165,7 @@ bit write_transaction, read_transaction;//выставляется в момен
     always_ff @ (posedge clk) begin
         avmms_readdata_o <= 32'h0;
         case(avmms_address_i)
-            3'h0:   avmms_readdata_o <= {16'h0, {4'h0, cr_sbit, cr_ptype, cr_pbit}, {4'h0, fifo_tx_full, fifo_tx_empty, fifo_rx_full, fifo_rx_empty}};
+            3'h0:   avmms_readdata_o <= {16'h0, {2'h0, cr_rx_en, cr_tx_en, cr_sbit, cr_ptype, cr_pbit}, {4'h0, fifo_tx_full, fifo_tx_empty, fifo_rx_full, fifo_rx_empty}};
             3'h1:   avmms_readdata_o <= cr_baud_limit;
             3'h2:   avmms_readdata_o <= fifo_tx_fill;
             3'h3:   avmms_readdata_o <= fifo_rx_fill;

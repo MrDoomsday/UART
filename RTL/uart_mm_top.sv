@@ -8,7 +8,9 @@
         [8] - enable parity bit
         [9] - parity bit type, 0 - even, 1 - odd
         [11:10] - count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
-        [31:12] - reserved
+        [12] - tx_enable
+        [13] - rx_enable
+        [31:14] - reserved
     0x1 - BAUD_GEN: baud_limit - WR
     0x2 - FILL TX - RO
     0x3 - FILL RX - RO
@@ -55,6 +57,8 @@ module uart_mm_top #(
 	bit				cr_ptype;// type parity bit, 0 - even, 1 - odd
     bit     [31:0]	cr_baud_limit;
     bit             cr_baud_update;
+    bit             cr_tx_en;
+    bit             cr_rx_en;
 
 //tx data
     bit     [7:0]   tx_data_i;
@@ -94,6 +98,8 @@ avalon_to_reg avalon_to_reg_inst (
 	.cr_ptype       (cr_ptype),// type parity bit, 0 - even, 1 - odd
     .cr_baud_limit  (cr_baud_limit),
     .cr_baud_update (cr_baud_update),
+    .cr_tx_en       (cr_tx_en),
+    .cr_rx_en       (cr_rx_en),
 
     .fifo_tx_empty  (fifo_tx_empty),
     .fifo_tx_full   (fifo_tx_full),
@@ -188,7 +194,7 @@ uart_rx_tx uart_rx_tx_inst(
 /***********************************************************************************************************************/
 /***********************************************************************************************************************/
 //connect fifo_tx
-assign fifo_tx_rd = ~fifo_tx_empty & tx_ready_o;
+assign fifo_tx_rd = ~fifo_tx_empty & tx_ready_o & cr_tx_en;
 
 always_ff @ (posedge clk or negedge reset_n)
     if(!reset_n) tx_valid_i <= 1'b0;
@@ -197,7 +203,7 @@ always_ff @ (posedge clk or negedge reset_n)
 assign tx_data_i = fifo_tx_dout;
 
 //connect fifo_rx
-assign fifo_rx_wr = rx_valid_o;
+assign fifo_rx_wr = rx_valid_o & cr_rx_en;
 assign fifo_rx_din = {rx_pbit_error, rx_data_o};
 
 assign fifo_rx_rd = rx_read;
