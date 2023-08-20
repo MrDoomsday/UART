@@ -1,6 +1,6 @@
 \documentclass[a4paper,12pt]{article}
 
-\usepackage[left=3.5cm,top=2.5cm,right=2.5cm,bottom=2.5cm,includehead,includefoot]{geometry}
+\usepackage[left=1.5cm,top=1.5cm,right=1.5cm,bottom=1.5cm,includehead,includefoot]{geometry}
 
 \usepackage{cmap}
 \usepackage[T2A]{fontenc}
@@ -20,7 +20,7 @@
 \usepackage{dirtree}
 \usepackage{colortbl}
 \usepackage{url}
-
+\usepackage{multirow}
 \graphicspath{{FIGURE/}}
 
 
@@ -91,7 +91,7 @@
     \end{itemize}
 
 
-
+\newpage
 \section{Использование}
 \subsubsection{Структура директорий}
   Проект содержит имеет следующую структуру папок:
@@ -113,11 +113,81 @@
     \item[\texttt{DOC/FIGURE}] - хранилище изображений.
 \end{description}
 
+\newpage
+\section{Архитектура}
 
 
+\newpage
+\section{Карта регистров}
+
+Модуль имеет 6 регистров управления, представленные в таблице {\ref{tbl:uart_regs}}. В таблице приняты следующие обозначения: RO - Read Only (только для чтения), WO - Write Only (только для записи), WR - Write or Read (чтение и запись). Default - значение, принимаемое регистром после сброса.
+
+\begin{table}[H]
+  \begin{center}
+    \begin{tabular}{l|c|c|c|l}
+      \rowcolor[gray]{0.7} {\tt Имя} & {\tt Адрес, DW} & {\tt Ширина} & {\tt Доступ} & {\tt Описание} \\ \hline \hline
+      {\tt CONTROL}   & 3'b000 & 30 & RW & Управление параметрами передачи.\\ \hline
+      {\tt BAUD}      & 3'b001 & 32 & RW & Установка BaudRate\\ \hline
+      {\tt FILL\_TX}  & 3'b010 & 32 & RO & Число байт, ожидающих передачи из TX FIFO.\\ \hline
+      {\tt FILL\_RX}  & 3'b011 & 32 & RO & Число байт, ожидающих чтения из RX FIFO.\\ \hline
+      {\tt TX FIFO}   & 3'b100 & 32 & WO & Запись байт в буфер передачи.\\ \hline
+      {\tt RX FIFO}   & 3'b101 & 32 & RO & Чтение байт из буфера приема.\\ \hline
+    \end{tabular}
+    \caption{Регистры управления ядра UART}
+    \label{tbl:uart_regs}
+    \end{center}
+\end{table}
+
+\subsection{CONTROL}
+
+Регистр \textbf{CONTROL} служит для управления процессами приема, передачи и контроля за флагами приемного и передающего FIFO.
+
+\begin{table}[H]
+  \begin{center}
+    \begin{tabular}{l|c|c|l}
+      \rowcolor[gray]{0.7}{\tt Bit} & {\tt Access} & {\tt Default} & {\tt Decription} \\\hline\hline
+      {\tt [0]} & RO & 1'b1 & FIFO TX Empty \\ \hline
+      {\tt [1]} & RO & 1'b0 & FIFO TX Full \\ \hline
+      {\tt [2]} & RO & 1'b1 & FIFO RX Empty \\ \hline
+      {\tt [3]} & RO & 1'b0 & FIFO RX Empty \\ \hline
+      {\tt [7:4]} & RO & 4'b0 & Reserved \\ \hline
+
+      {\tt [8]} & RW & 1'b0 & Enable parity bit \\ \hline
+      {\tt [9]} & RW & 1'b0 & Type parity bit\\ \hline
+      {\tt [11:10]} & RW & 2'b0 & Count stop bits: \\ \hline
+
+      {\tt [12]} & RW & 1'b1 & Enable transmitter \\ \hline
+      {\tt [13]} & RW & 1'b1 & Enable receiver \\ \hline
+    \end{tabular}
+    \caption{Биты регистра CONTROL}
+    \label{tbl:control_bits}
+    \end{center}
+\end{table}
 
 
+\textbf{FIFO TX Empty} - данный бит выставляется в единицу если FIFO для передачи не содержит никаких данных.
 
+\textbf{FIFO TX Full} - данный бит выставляется в единицу если FIFO для передачи заполнено. Данные, записываемые в FIFO TX при установленном флаге, будут потеряны.
+
+\textbf{FIFO RX Empty} - данный бит выставляется в единицу если FIFO RX не содержит данных для чтения.
+
+\textbf{FIFO RX Full} - данный бит выставляется в единицу если FIFO RX заполнено. Все данные, которые будут приняты по UART будут утеряны.
+
+
+\begin{table}[H]
+  \begin{center}
+    \begin{tabular}{ccc|l}
+    P&F&T&Setting \\\hline\hline
+    1 & 0 & 0 & Odd parity		\\\hline
+    1 & 0 & 1 & Even parity	\\\hline
+    1 & 1 & 0 & Parity bit is a Space (1'b0)\\\hline
+    1 & 1 & 1 & Parity bit is a Mark (1'b1)\\\hline
+    0 & & & No parity \\\hline
+    \end{tabular}
+  \caption{Parity setup}
+  \label{tbl:parity}
+  \end{center}
+\end{table}
 
 
 
