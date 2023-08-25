@@ -6,7 +6,7 @@ module uart_mm_top_tb();
 
     localparam fifo_depth = 10;
     localparam bit [31:0] system_frequency = 32'd100_000_000; // in Hz
-    reg     [31:0]	baudrate = 9600; // in Baud
+    reg     [31:0]	baudrate = 921600; // in Baud
 
 
 
@@ -106,10 +106,10 @@ module uart_mm_top_tb();
         reset_n = 1'b1;
         repeat(5) @ (posedge clk);
         
-        mm_write(3'h1, calc_baud_limit(system_frequency, baudrate));
+        mm_write(3'h1, calc_baud_limit(system_frequency, baudrate));//set baudrate
 
         for (int i = 0; i < 16; i++) begin
-            mm_write(3'h0, {16'h0, i[7:0], 8'h0});            
+            mm_write(3'h0, {16'h0, {4'b0010, i[3:0]}, 8'h0});//tx_disable   
             //write transaction
             for(int j = 0; j < 256; j++) begin
                 //tx_byte = j[7:0];
@@ -118,6 +118,9 @@ module uart_mm_top_tb();
                 queue_tx_byte.push_back(tx_byte);
             end
 
+            repeat(1000) @ (posedge clk);
+
+            mm_write(3'h0, {16'h0, {4'b0011, i[3:0]}, 8'h0});//tx_enable
             rx_fifo_fill = 32'h0;
             //wait transmit all byte
             while(rx_fifo_fill < 256) begin

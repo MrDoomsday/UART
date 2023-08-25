@@ -1,1 +1,6 @@
-*.png
+*.aux
+*.log
+*.lot
+*.out
+*.synctex.gz
+*.toc
