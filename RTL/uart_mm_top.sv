@@ -17,12 +17,37 @@
     0x4 - TX FIFO - WO
     0x5 - RX FIFO - RO
 */
+`define use_axi
+
 module uart_mm_top #(
     parameter fifo_depth = 10
 )(
 	input clk,
 	input reset_n,
-	
+
+`ifdef use_axi
+//AXI-Lite Interface
+    input  bit [5:0]            s_axil_awaddr,
+    input  bit [2:0]            s_axil_awprot,
+    input  bit                  s_axil_awvalid,
+    output bit                  s_axil_awready,
+    input  bit [31:0]           s_axil_wdata,
+    input  bit [3:0]            s_axil_wstrb,
+    input  bit                  s_axil_wvalid,
+    output bit                  s_axil_wready,
+    output bit [1:0]            s_axil_bresp,
+    output bit                  s_axil_bvalid,
+    input  bit                  s_axil_bready,
+    input  bit [5:0]            s_axil_araddr,
+    input  bit [2:0]            s_axil_arprot,
+    input  bit                  s_axil_arvalid,
+    output bit                  s_axil_arready,
+    output bit [31:0]           s_axil_rdata,
+    output bit [1:0]            s_axil_rresp,
+    output bit                  s_axil_rvalid,
+    input  bit                  s_axil_rready,
+`else
+//Avalon-ST Interface
 	input 	bit 				avmms_write_i,
 	input 	bit 	[2:0] 		avmms_address_i,
 	input 	bit 	[31:0]		avmms_writedata_i,
@@ -30,7 +55,7 @@ module uart_mm_top #(
     input   bit                 avmms_read_i,
 	output 	bit 				avmms_waitrequest_o,
     output  bit     [31:0]      avmms_readdata_o,
-
+`endif
 
     input   logic uart_rx,
     output  logic uart_tx
@@ -79,45 +104,95 @@ module uart_mm_top #(
 /*******************************************           INSTANCE          ***********************************************/
 /***********************************************************************************************************************/
 /***********************************************************************************************************************/
-avalon_to_reg avalon_to_reg_inst (
-    .clk        (clk),
-    .reset_n    (reset_n),
+`ifdef use_axi
+    axi_to_reg axi_to_reg_inst (
+        .clk        (clk),
+        .reset_n    (reset_n),
 
-//Avalon Interface
-	.avmms_write_i      (avmms_write_i),
-	.avmms_address_i    (avmms_address_i),
-	.avmms_writedata_i  (avmms_writedata_i),
-    .avmms_byteenable_i (avmms_byteenable_i),
-    .avmms_read_i       (avmms_read_i),
-	.avmms_waitrequest_o(avmms_waitrequest_o),
-    .avmms_readdata_o   (avmms_readdata_o),
+    //AXI-Lite Interface
+        .s_axil_awaddr  (s_axil_awaddr),
+        .s_axil_awprot  (s_axil_awprot),
+        .s_axil_awvalid (s_axil_awvalid),
+        .s_axil_awready (s_axil_awready),
+        .s_axil_wdata   (s_axil_wdata),
+        .s_axil_wstrb   (s_axil_wstrb),
+        .s_axil_wvalid  (s_axil_wvalid),
+        .s_axil_wready  (s_axil_wready),
+        .s_axil_bresp   (s_axil_bresp),
+        .s_axil_bvalid  (s_axil_bvalid),
+        .s_axil_bready  (s_axil_bready),
+        .s_axil_araddr  (s_axil_araddr),
+        .s_axil_arprot  (s_axil_arprot),
+        .s_axil_arvalid (s_axil_arvalid),
+        .s_axil_arready (s_axil_arready),
+        .s_axil_rdata   (s_axil_rdata),
+        .s_axil_rresp   (s_axil_rresp),
+        .s_axil_rvalid  (s_axil_rvalid),
+        .s_axil_rready  (s_axil_rready),
 
-//register
-    .cr_pbit        (cr_pbit), // enable parity bit
-    .cr_sbit        (cr_sbit), // count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
-	.cr_ptype       (cr_ptype),// type parity bit, 0 - even, 1 - odd
-    .cr_baud_limit  (cr_baud_limit),
-    .cr_baud_update (cr_baud_update),
-    .cr_tx_en       (cr_tx_en),
-    .cr_rx_en       (cr_rx_en),
+    //register
+        .cr_pbit        (cr_pbit), // enable parity bit
+        .cr_sbit        (cr_sbit), // count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
+        .cr_ptype       (cr_ptype),// type parity bit, 0 - even, 1 - odd
+        .cr_baud_limit  (cr_baud_limit),
+        .cr_baud_update (cr_baud_update),
+        .cr_tx_en       (cr_tx_en),
+        .cr_rx_en       (cr_rx_en),
 
-    .fifo_tx_empty  (fifo_tx_empty),
-    .fifo_tx_full   (fifo_tx_full),
-    .fifo_tx_fill   ({{(32-fifo_depth-1){1'b0}}, fifo_tx_fill}),
+        .fifo_tx_empty  (fifo_tx_empty),
+        .fifo_tx_full   (fifo_tx_full),
+        .fifo_tx_fill   ({{(32-fifo_depth-1){1'b0}}, fifo_tx_fill}),
 
-    .fifo_rx_empty  (fifo_rx_empty),
-    .fifo_rx_full   (fifo_rx_full),
-    .fifo_rx_fill   ({{(32-fifo_depth-1){1'b0}}, fifo_rx_fill}),
-    
-    .tx_byte        (fifo_tx_din),
-    .tx_valid       (fifo_tx_wr),
+        .fifo_rx_empty  (fifo_rx_empty),
+        .fifo_rx_full   (fifo_rx_full),
+        .fifo_rx_fill   ({{(32-fifo_depth-1){1'b0}}, fifo_rx_fill}),
+        
+        .tx_byte        (fifo_tx_din),
+        .tx_valid       (fifo_tx_wr),
 
-    .rx_read        (rx_read),
-    .rx_readdata    (rx_readdata),
-    .rx_readdatavalid(rx_readdatavalid)
+        .rx_read        (rx_read),
+        .rx_readdata    (rx_readdata),
+        .rx_readdatavalid(rx_readdatavalid)
+    );
+`else
+    avalon_to_reg avalon_to_reg_inst (
+        .clk        (clk),
+        .reset_n    (reset_n),
 
-);
+    //Avalon Interface
+        .avmms_write_i      (avmms_write_i),
+        .avmms_address_i    (avmms_address_i),
+        .avmms_writedata_i  (avmms_writedata_i),
+        .avmms_byteenable_i (avmms_byteenable_i),
+        .avmms_read_i       (avmms_read_i),
+        .avmms_waitrequest_o(avmms_waitrequest_o),
+        .avmms_readdata_o   (avmms_readdata_o),
 
+    //register
+        .cr_pbit        (cr_pbit), // enable parity bit
+        .cr_sbit        (cr_sbit), // count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
+        .cr_ptype       (cr_ptype),// type parity bit, 0 - even, 1 - odd
+        .cr_baud_limit  (cr_baud_limit),
+        .cr_baud_update (cr_baud_update),
+        .cr_tx_en       (cr_tx_en),
+        .cr_rx_en       (cr_rx_en),
+
+        .fifo_tx_empty  (fifo_tx_empty),
+        .fifo_tx_full   (fifo_tx_full),
+        .fifo_tx_fill   ({{(32-fifo_depth-1){1'b0}}, fifo_tx_fill}),
+
+        .fifo_rx_empty  (fifo_rx_empty),
+        .fifo_rx_full   (fifo_rx_full),
+        .fifo_rx_fill   ({{(32-fifo_depth-1){1'b0}}, fifo_rx_fill}),
+        
+        .tx_byte        (fifo_tx_din),
+        .tx_valid       (fifo_tx_wr),
+
+        .rx_read        (rx_read),
+        .rx_readdata    (rx_readdata),
+        .rx_readdatavalid(rx_readdatavalid)
+    );
+`endif
 
 sc_fifo #(
 	.data_width(8),
