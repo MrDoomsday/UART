@@ -27,7 +27,7 @@ module uart_mm_top #(
 
 `ifdef use_axi
 //AXI-Lite Interface
-    input  bit [5:0]            s_axil_awaddr,
+    input  bit [4:0]            s_axil_awaddr,
     input  bit [2:0]            s_axil_awprot,
     input  bit                  s_axil_awvalid,
     output bit                  s_axil_awready,
@@ -38,7 +38,7 @@ module uart_mm_top #(
     output bit [1:0]            s_axil_bresp,
     output bit                  s_axil_bvalid,
     input  bit                  s_axil_bready,
-    input  bit [5:0]            s_axil_araddr,
+    input  bit [4:0]            s_axil_araddr,
     input  bit [2:0]            s_axil_arprot,
     input  bit                  s_axil_arvalid,
     output bit                  s_axil_arready,

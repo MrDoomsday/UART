@@ -1,9 +1,28 @@
+/*REGISTER MAP*/
+/*
+    0x0 - CONTROL - RW
+        [0] - fifo_rx_empty
+        [1] - fifo_rx_full
+        [2] - fifo_tx_empty
+        [3] - fifo_tx_full
+        [8] - enable parity bit
+        [9] - parity bit type, 0 - even, 1 - odd
+        [11:10] - count stop bit, 2'b00 - 1 stop bit, 2'b01 - 2 stop bit, 2'b10 - 3 stop bit, 2'b11 - 3 stop bit;
+        [12] - tx_enable
+        [13] - rx_enable
+        [31:14] - reserved
+    0x1 - BAUD_GEN: baud_limit - WR
+    0x2 - FILL TX - RO
+    0x3 - FILL RX - RO
+    0x4 - TX FIFO - WO
+    0x5 - RX FIFO - RO
+*/
 module axi_to_reg (
     input bit clk,
     input bit reset_n,
 
 //AXI-Lite Interface
-    input  bit [5:0]            s_axil_awaddr,
+    input  bit [4:0]            s_axil_awaddr,
     input  bit [2:0]            s_axil_awprot,
     input  bit                  s_axil_awvalid,
     output bit                  s_axil_awready,
@@ -14,7 +33,7 @@ module axi_to_reg (
     output bit [1:0]            s_axil_bresp,
     output bit                  s_axil_bvalid,
     input  bit                  s_axil_bready,
-    input  bit [5:0]            s_axil_araddr,
+    input  bit [4:0]            s_axil_araddr,
     input  bit [2:0]            s_axil_arprot,
     input  bit                  s_axil_arvalid,
     output bit                  s_axil_arready,
@@ -59,7 +78,7 @@ module axi_to_reg (
 /***********************************************************************************************************************/
 /***********************************************************************************************************************/
 //write channel
-bit [3:0] aligned_awaddress_reg;// = s_axil_awaddr[5:2];
+bit [2:0] aligned_awaddress_reg;// = s_axil_awaddr[5:2];
 bit [2:0] awprot_reg;
 
 bit [3:0] wstrb_reg;
@@ -69,8 +88,11 @@ bit aw_capture;//address write captured and wait write transaction
 bit w_capture;
 
 //read channel
-bit [3:0] aligned_araddress_reg;// = s_axil_araddr[5:2];
+bit [2:0] aligned_araddress_reg;// = s_axil_araddr[5:2];
+bit [2:0] arprot_reg;
 
+
+bit ar_capture;
 
 
 /***********************************************************************************************************************/
@@ -99,7 +121,7 @@ assign s_axil_wready = ~w_capture;
 
 always_ff @ (posedge clk) begin
     if(s_axil_awvalid && s_axil_awready) begin
-        aligned_awaddress_reg <= s_axil_awaddr[5:2];
+        aligned_awaddress_reg <= s_axil_awaddr[4:2];
         awprot_reg <= s_axil_awprot;
     end
 
@@ -113,7 +135,7 @@ end
 //write only 1 tick
 always_ff @ (posedge clk or negedge reset_n)
     if(!reset_n) s_axil_bvalid <= 1'b0;
-    else if(aw_capture && w_capture) s_axil_bvalid <= 1'b1;
+    else if(aw_capture && w_capture && ~s_axil_bvalid) s_axil_bvalid <= 1'b1;
     else if(s_axil_bready) s_axil_bvalid <= 1'b0;
 
 always_ff @ (posedge clk) begin
@@ -181,6 +203,74 @@ always_ff @ (posedge clk or negedge reset_n)
 /*******************************************            CHANNEL          ***********************************************/
 /***********************************************************************************************************************/
 /***********************************************************************************************************************/
+always_ff @ (posedge clk or negedge reset_n)
+    if(!reset_n) ar_capture <= 1'b0;
+    else begin
+        if(ar_capture) ar_capture <= ~(s_axil_rready & s_axil_rvalid);
+        else ar_capture <= s_axil_arvalid;
+    end
+
+assign s_axil_arready = ~ar_capture;
+
+
+
+always_ff @ (posedge clk) begin
+    if(s_axil_arready && s_axil_arvalid) begin
+        aligned_araddress_reg <= s_axil_araddr[4:2];
+        arprot_reg <= s_axil_arprot;
+    end
+end
+
+
+//generate one tick signal 'read' from fifo
+bit read_from_fifo_capture;
+
+always_ff @ (posedge clk or negedge reset_n)
+    if(!reset_n) begin
+        rx_read <= 1'b0;
+        read_from_fifo_capture <= 1'b0;
+    end
+    else begin
+        if(~read_from_fifo_capture && (aligned_araddress_reg == 3'h5) && ar_capture) read_from_fifo_capture <= 1'b1;
+        else if(s_axil_rready && s_axil_rvalid) read_from_fifo_capture <= 1'b0;
+
+        if(~read_from_fifo_capture && (aligned_araddress_reg == 3'h5) && ar_capture) rx_read <= 1'b1;
+        else rx_read <= 1'b0;
+    end
+
+
+//response 
+    always_ff @ (posedge clk or negedge reset_n)
+    if(!reset_n) s_axil_rvalid <= 1'b0;
+    else begin
+        if(s_axil_rready && s_axil_rvalid) s_axil_rvalid <= 1'b0;//transaction OK
+        else if(ar_capture && ( (aligned_araddress_reg == 3'h0) || 
+                                (aligned_araddress_reg == 3'h1) || 
+                                (aligned_araddress_reg == 3'h2) || 
+                                (aligned_araddress_reg == 3'h3) || 
+                                (aligned_araddress_reg == 3'h4) || (aligned_araddress_reg == 3'h5) && rx_readdatavalid)) s_axil_rvalid <= 1'b1;//read from internal register
+    end
+
+always_ff @ (posedge clk or negedge reset_n) begin
+        case(aligned_araddress_reg)
+            3'h0:   s_axil_rdata <= {16'h0, {2'h0, cr_rx_en, cr_tx_en, cr_sbit, cr_ptype, cr_pbit}, {4'h0, fifo_tx_full, fifo_tx_empty, fifo_rx_full, fifo_rx_empty}};
+            3'h1:   s_axil_rdata <= cr_baud_limit;
+            3'h2:   s_axil_rdata <= fifo_tx_fill;
+            3'h3:   s_axil_rdata <= fifo_rx_fill;
+            3'h4:   s_axil_rdata <= 32'h0;//read fail
+            3'h5:   s_axil_rdata <= rx_readdatavalid ? {23'h0, rx_readdata} : s_axil_rdata;
+            default: s_axil_rdata <= 32'h0;
+        endcase
+end
+
+always_ff @ (posedge clk) begin
+    if( (aligned_araddress_reg == 3'h0) || 
+        (aligned_araddress_reg == 3'h1) || 
+        (aligned_araddress_reg == 3'h2) || 
+        (aligned_araddress_reg == 3'h3) || 
+        (aligned_araddress_reg == 3'h5)) s_axil_rresp <= 2'b00;
+    else if(aligned_araddress_reg == 3'h4) s_axil_rresp <= 2'b10;//SLAVE ERR
+end
 
 
 endmodule

@@ -1,5 +1,6 @@
 `timescale 1ns/1ns
 import defs::*;
+`define axi
 
 module uart_mm_top_tb();
 
@@ -13,7 +14,28 @@ module uart_mm_top_tb();
 
     reg clk;
     reg reset_n;
-    
+
+`ifdef axi
+    reg [4:0]            s_axil_awaddr;
+    reg [2:0]            s_axil_awprot;
+    reg                  s_axil_awvalid;
+    wire                 s_axil_awready;
+    reg [31:0]           s_axil_wdata;
+    reg [3:0]            s_axil_wstrb;
+    reg                  s_axil_wvalid;
+    wire                 s_axil_wready;
+    wire [1:0]           s_axil_bresp;
+    wire                 s_axil_bvalid;
+    reg                  s_axil_bready;
+    reg [4:0]            s_axil_araddr;
+    reg [2:0]            s_axil_arprot;
+    reg                  s_axil_arvalid;
+    wire                 s_axil_arready;
+    wire [31:0]          s_axil_rdata;
+    wire [1:0]           s_axil_rresp;
+    wire                 s_axil_rvalid;
+    reg                  s_axil_rready;
+`else
     reg 				avmms_write_i;
     reg 	[2:0] 		avmms_address_i;
     reg 	[31:0]		avmms_writedata_i;
@@ -21,7 +43,7 @@ module uart_mm_top_tb();
     reg                 avmms_read_i;
     wire 				avmms_waitrequest_o;
     wire    [31:0]      avmms_readdata_o;
-
+`endif
     wire    uart_tx_rx;
 
     uart_mm_top #(
@@ -30,6 +52,29 @@ module uart_mm_top_tb();
         .clk            (clk),
         .reset_n        (reset_n),
         
+    `ifdef axi
+        //AXI-Lite Interface
+        .s_axil_awaddr  (s_axil_awaddr),
+        .s_axil_awprot  (s_axil_awprot),
+        .s_axil_awvalid (s_axil_awvalid),
+        .s_axil_awready (s_axil_awready),
+        .s_axil_wdata   (s_axil_wdata),
+        .s_axil_wstrb   (s_axil_wstrb),
+        .s_axil_wvalid  (s_axil_wvalid),
+        .s_axil_wready  (s_axil_wready),
+        .s_axil_bresp   (s_axil_bresp),
+        .s_axil_bvalid  (s_axil_bvalid),
+        .s_axil_bready  (s_axil_bready),
+        .s_axil_araddr  (s_axil_araddr),
+        .s_axil_arprot  (s_axil_arprot),
+        .s_axil_arvalid (s_axil_arvalid),
+        .s_axil_arready (s_axil_arready),
+        .s_axil_rdata   (s_axil_rdata),
+        .s_axil_rresp   (s_axil_rresp),
+        .s_axil_rvalid  (s_axil_rvalid),
+        .s_axil_rready  (s_axil_rready),
+    `else
+        //Avalon-MM Interface
         .avmms_write_i      (avmms_write_i),
         .avmms_address_i    (avmms_address_i),
         .avmms_writedata_i  (avmms_writedata_i),
@@ -37,7 +82,7 @@ module uart_mm_top_tb();
         .avmms_read_i       (avmms_read_i),
         .avmms_waitrequest_o(avmms_waitrequest_o),
         .avmms_readdata_o   (avmms_readdata_o),
-    
+    `endif
     
         .uart_rx(uart_tx_rx),
         .uart_tx(uart_tx_rx)
@@ -53,7 +98,104 @@ module uart_mm_top_tb();
     
 
 
+`ifdef axi
+    task mm_write(bit [2:0] address, bit [31:0] data);
+        fork
+        //Address write channel
+            begin
+                s_axil_awaddr = {address, 2'h0};
+                s_axil_awprot = 3'h0;
+                s_axil_awvalid = 1'b1;
+                #1;
+                
+                while(~s_axil_awready) begin
+                    @(posedge clk);
+                    #1;
+                end
+                @(posedge clk);
+                s_axil_awaddr = 5'h0;
+                s_axil_awprot = 3'h0;
+                s_axil_awvalid = 1'b0;
+            end
 
+        //data write channel
+            begin
+                s_axil_wdata = data;
+                s_axil_wstrb = 4'hF;
+                s_axil_wvalid = 1'b1;
+                #1;
+
+                while(~s_axil_wready) begin
+                    @(posedge clk);
+                    #1;
+                end
+                @(posedge clk);
+
+                s_axil_wdata = 32'h0;
+                s_axil_wstrb = 4'h0;
+                s_axil_wvalid = 1'b0;
+            end
+
+        //wait response
+            begin
+                while(~(s_axil_bready && s_axil_bvalid)) begin
+                    @(posedge clk)
+                    #1;
+                end
+                if(s_axil_bresp == 2'b00) begin
+                    $display("Write OK, address = %h, data = %h", address, data);
+                end
+                else if(s_axil_bresp == 2'b10) begin
+                    $display("***SLAVE ERROR***, address = %h, data = %h", address, data);
+                end
+                else begin
+                    $display("***OTHER ERROR***, address = %h, data = %h", address, data);
+                end
+                @(posedge clk);
+            end
+        join
+    endtask
+
+
+    task mm_read (input bit [2:0] address, output bit [31:0] readdata);
+        fork
+            //write address
+            begin
+                s_axil_araddr = {address, 2'b0};
+                s_axil_arprot = 3'h0;
+                s_axil_arvalid = 1'b1;
+                #1;
+                while(~s_axil_arready) begin
+                    @(posedge clk);
+                    #1;
+                end
+                @(posedge clk);
+                s_axil_araddr = 5'h0;
+                s_axil_arprot = 3'h0;
+                s_axil_arvalid = 1'b0;
+            end
+
+            //wait response
+            begin
+                while(~(s_axil_rready && s_axil_rvalid)) begin
+                    @(posedge clk);
+                    #1;
+                end
+                readdata = s_axil_rdata;
+                if(s_axil_rresp == 2'b00) begin
+                    $display("Read OK, address = %h, readdata = %h", address, readdata);
+                end
+                else if(s_axil_rresp == 2'b10) begin
+                    $display("***SLAVE ERROR***, address = %h, readdata = %h", address, readdata);
+                end
+                else begin
+                    $display("***OTHER ERROR***, address = %h, readdata = %h", address, readdata);
+                end
+                @(posedge clk);
+            end
+        join
+    endtask
+`else
     task mm_write(bit [2:0] address, bit [31:0] data);
         avmms_address_i = address;
         avmms_writedata_i = data;
@@ -71,6 +213,22 @@ module uart_mm_top_tb();
         avmms_byteenable_i = 4'b0000;
     endtask
 
+
+    task mm_read (input bit [2:0] address, output bit [31:0] readdata);
+        avmms_read_i = 1'b1;
+        avmms_address_i = address;
+        @(posedge clk);
+        #2;
+        while(avmms_waitrequest_o) begin
+            @(posedge clk);
+            #2;
+        end
+        readdata = avmms_readdata_o;//capture readdata from Avalon bus
+        @(posedge clk);
+        avmms_read_i = 1'b0;
+        avmms_address_i = 3'd0;
+    endtask
+`endif
     /*REGISTER MAP*/
     /*
         0x0 - CONTROL - RW
@@ -97,11 +255,26 @@ module uart_mm_top_tb();
 
     initial begin
         reset_n = 1'b0;
+    `ifdef axi
+        s_axil_awaddr = 5'h0;
+        s_axil_awprot = 3'h0;
+        s_axil_awvalid = 1'b0;
+
+        s_axil_wdata = 32'h0;
+        s_axil_wstrb = 4'h0;
+        s_axil_wvalid = 1'b0;
+
+        s_axil_araddr = 5'h0;
+        s_axil_arprot = 3'h0;
+        s_axil_arvalid = 1'b0;
+    `else
         avmms_write_i = 1'b0;
         avmms_address_i = 3'h0;
         avmms_writedata_i = 32'h0;
         avmms_byteenable_i = 4'h0;
         avmms_read_i = 1'b0;
+    `endif
+
         repeat(5) @ (posedge clk);
         reset_n = 1'b1;
         repeat(5) @ (posedge clk);
@@ -124,18 +297,7 @@ module uart_mm_top_tb();
             rx_fifo_fill = 32'h0;
             //wait transmit all byte
             while(rx_fifo_fill < 256) begin
-                avmms_read_i = 1'b1;
-                avmms_address_i = 3'd3;
-                @(posedge clk);
-                #2;
-                while(avmms_waitrequest_o) begin
-                    @(posedge clk);
-                    #2;
-                end
-                rx_fifo_fill = avmms_readdata_o;
-                @(posedge clk);
-                avmms_read_i = 1'b0;
-                avmms_address_i = 3'h0;
+                mm_read(3'h3, rx_fifo_fill);
             end
 
             $display("RX FIFO FILL = 256 byte");
@@ -143,26 +305,18 @@ module uart_mm_top_tb();
 
             //read and check transaction
             for(int j = 0; j < 256; j++) begin
-                avmms_read_i = 1'b1;
-                avmms_address_i = 3'd5;
+                bit [31:0] readdata_rx_fifo;
+                mm_read(3'h5,readdata_rx_fifo);
                 @(posedge clk);
-                #2;
-                while(avmms_waitrequest_o) begin
-                    @(posedge clk);
-                    #2;
-                end
-                @(posedge clk);
-                avmms_read_i = 1'b0;
-                avmms_address_i = 3'd0;
                 rx_byte = queue_tx_byte.pop_front();
                 //@(posedge clk);
-                if((rx_byte == avmms_readdata_o[7:0]) && !avmms_readdata_o[8]) begin
+                if((rx_byte == readdata_rx_fifo[7:0]) && !readdata_rx_fifo[8]) begin
                     $display("Byte = %0h OK", rx_byte);
                 end
                 else begin
                     $display("***TEST FAILED***");
-                    if(avmms_readdata_o[8]) $display("Parity bit error");
-                    $display("Byte if queue = %0h, byte receive = %0h", rx_byte, avmms_readdata_o[7:0]);
+                    if(readdata_rx_fifo[8]) $display("Parity bit error");
+                    $display("Byte if queue = %0h, byte receive = %0h", rx_byte, readdata_rx_fifo[7:0]);
                     $display("CR_PTYPE = %0b, CR_PBIT = %0b, CR_SBIT = %0d", i[1], i[0], i[3:2]);
                     $stop();
                 end
@@ -176,7 +330,28 @@ module uart_mm_top_tb();
     end
 
 
+`ifdef axi
+    initial begin
+        s_axil_bready = 1'b0;
+        forever begin
+            s_axil_bready = 1'b0;
+            repeat($urandom_range(1,8)) @ (posedge clk);
+            s_axil_bready = 1'b1;
+            repeat($urandom_range(1,8)) @ (posedge clk);
+        end
+    end
 
+
+    initial begin
+        s_axil_rready = 1'b0;
+        forever begin
+            s_axil_rready = 1'b0;
+            repeat($urandom_range(1,8)) @ (posedge clk);
+            s_axil_rready = 1'b1;
+            repeat($urandom_range(1,8)) @ (posedge clk);
+        end
+    end
+`endif
 
 
 
